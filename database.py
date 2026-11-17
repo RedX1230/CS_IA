@@ -271,8 +271,29 @@ class FeedbackModel:
     def __init__(self, database: DatabaseManager):
         self.database = database
 
-    def adjusted_estimate(self, subject_name: str, current_estimate: float) -> float:
-        rows = self.database.fetch_feedback_for_subject(subject_name)
+  def adjusted_estimate(self, subject_name: str, current_estimate: float) -> float:
+    rows = self.database.fetch_feedback_for_subject(subject_name)
+
+    if not rows:
+        return current_estimate
+
+    weighted_ratio_sum = 0.0
+    total_weight = 0
+
+    for index, row in enumerate(rows):
+        ratio = row["actual_hours"] / row["planned_hours"]
+
+        # Newer feedback receives a greater weight.
+        weight = len(rows) - index
+
+        weighted_ratio_sum += ratio * weight
+        total_weight += weight
+
+    weighted_average_ratio = weighted_ratio_sum / total_weight
+
+    adjusted = current_estimate * weighted_average_ratio
+
+    return round(max(adjusted, 0), 2)
 
         if not rows:
             return current_estimate
